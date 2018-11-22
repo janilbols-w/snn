@@ -143,6 +143,7 @@ sim.run(t_stop, callbacks=[weight_recorder])
 
 filename = normalized_filename("Results", "simple_stdp", "pkl", options.simulator)
 p2.write_data(filename, annotations={'script_name': __file__})
+print(__file__)
 
 presynaptic_data = p1.get_data().segments[0]
 postsynaptic_data = p2.get_data().segments[0]
