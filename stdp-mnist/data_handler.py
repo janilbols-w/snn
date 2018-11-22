@@ -145,3 +145,92 @@ class DataHandler:
         print(one_hot)
         
         return True
+
+# =========================================================================== #
+# End of class DataHandler
+# =========================================================================== #    
+
+def plotNeuronsSpikes(spike_table):
+    n_neuron = np.shape(spike_table)[0]
+    n_spikes = np.shape(spike_table[0])[0]
+    labs = np.ones([n_neuron,n_spikes])
+    for i in range(n_neuron): 
+        labs[i] *= i
+    plt.figure(figsize=(16,4))
+    plt.plot(spike_table,labs, 'ro')
+    plt.show()
+
+def generatePoissonSpikes(t_stop = 100, n_neurons = 10, 
+                          delta_steps = 1.0, period = 2.0, norm_sigma = 0.05, flag_Debug = False):
+    # init
+    poisson_spike_time = np.array([])
+    spike_time = np.random.normal(0, period * (1 + norm_sigma), n_neurons)
+    if flag_Debug:
+        print "origin:\n", spike_time
+    min_spike_time = min(spike_time)
+    while min_spike_time < 0:
+        spike_step = np.random.poisson(lam = delta_steps, size=(n_neurons))
+        if flag_Debug:
+            print(spike_step)
+        id_temp = np.where(spike_time<0)
+        spike_time[id_temp] += spike_step[id_temp] * np.random.normal(period, period * norm_sigma ,len(id_temp))
+        min_spike_time = min(spike_time)
+    poisson_spike_time = np.append(poisson_spike_time,spike_time,axis=0)
+    if flag_Debug:
+        print "init:\n", spike_time
+    # simulate till t_stop
+    while min_spike_time < t_stop:
+    #make sure all the neurons spikes until stop time
+        spike_step = np.random.poisson(lam = delta_steps, size=(n_neurons))
+        spike_step[spike_step<1] = 1
+        if flag_Debug:
+            print(spike_step)
+        id_temp = np.where(spike_time>=t_stop)
+        spike_step[id_temp] = 0
+        spike_time += spike_step * np.random.normal(period, period * norm_sigma ,len(id_temp))
+        if flag_Debug:
+            print(spike_time)
+        min_spike_time = min(spike_time)
+        poisson_spike_time = np.append(poisson_spike_time,spike_time,axis=0)
+    poisson_spike_time = poisson_spike_time.reshape(-1,n_neurons)
+    poisson_spike_time = np.transpose(poisson_spike_time)
+    return poisson_spike_time
+
+
+def generateDataMaskedSpikes(data, sample_period, firing_period, thresh = 0.2, flag_Debug = True):
+    '''
+        data format:
+            np.array(n_sample,n_element)
+    '''
+    n_samples, n_neurons = np.shape(data)[:2]
+    if flag_Debug:
+        print "n_samples = ", n_samples
+        print "n_neurons = ",n_neurons
+    t_stop = n_samples * sample_period
+    init_spike_table = generatePoissonSpikes(t_stop = t_stop, n_neurons = n_neurons, period = firing_period)
+    init_spike_table[init_spike_table>=t_stop] = 0
+    # init empty masked_spike_table
+    masked_spike_table = np.zeros(np.shape(init_spike_table))
+    for i_neuron in np.arange(n_neurons):
+        if flag_Debug:
+            print "=============================================="
+            print "----------------- i_neuron ------------------- ", i_neuron
+            print "=============================================="
+        # convert spike time to sample id
+        id_sample = [ int(spike_time/sample_period) for spike_time in init_spike_table[i_neuron]] 
+        if flag_Debug:
+            print(id_sample)
+        # thresh the spike into binary {0,1}
+        binary_mask = (data[id_sample,i_neuron] > thresh) * 1
+        if flag_Debug:
+            print(data[id_sample,i_neuron])
+            print(binary_mask)
+        #id_4_masked = np.where(init_spike_table[i,id_sample])
+        masked_spike_table[i_neuron] = binary_mask * init_spike_table[i_neuron]
+    return init_spike_table, masked_spike_table
+
+def build_spike_sequences(spike_table):
+    def spike_time_gen(i):
+        """Spike time generator. `i` should be an array of indices."""
+        return [Sequence(spike_table[j]) for j in i]
+    return spike_time_gen
