@@ -358,6 +358,7 @@ def generatePoissonSpikes(t_stop = 100, n_neurons = 10,
         if flag_Debug:
             print(spike_time)
         min_spike_time = min(spike_time)
+        
         poisson_sp_handler.add(spike_time)         
     return poisson_sp_handler.finalize(n_neurons) #poisson_spike_time
 
@@ -375,8 +376,6 @@ def generateDataMaskedSpikes(data, sample_period, firing_period, thresh = 0.2, f
     print "n_samples = ", n_samples
     print "n_neurons = ", n_neurons
     print "t_stop = ", t_stop
-    print "sample_period = ", sample_period
-    print "firing_period = ", firing_period
     
     print "generate random poisson spikes..."
     init_spike_table = generatePoissonSpikes(t_stop = t_stop, n_neurons = n_neurons, period = firing_period)
@@ -417,7 +416,6 @@ def generateDataMaskedSpikes(data, sample_period, firing_period, thresh = 0.2, f
 def build_spike_sequences(spike_time_table):
     def spike_time_gen(i):
         """Spike time generator. `i` should be an array of indices."""
-        #print "spike_time_gen i:\n",i
         return [Sequence(spike_time_table[j]) for j in i]
     return spike_time_gen
 
