@@ -58,7 +58,7 @@ class DataHandler:
         self.test_in_spikes = np.array([])
         self.test_out_spikes = np.array([])
         
-    def load_data(self, flag_From_Pickle = True, flag_normalize = False, flag_Debug = True):
+    def load_data(self, flag_From_Pickle = True, flag_normalize = False, flag_Debug = True, flag_save_pickle = True):
         ''' 
             Load MNIST data from MNIST_data_path
             
@@ -72,7 +72,7 @@ class DataHandler:
               Else return true
         '''
         flag_okay = False
-        
+        no_of_different_labels = 10 # MNIST output dimension
         #-- Load from pickle -------------------------------------------------------
         if flag_From_Pickle:
             if not(os.path.isfile("%s" % self.data_path + "pickled_mnist.pkl")):
@@ -104,11 +104,11 @@ class DataHandler:
         
         if flag_Debug:
             print("Data Loading: Train")
-        train_data = np.loadtxt(data_path + "mnist_train.csv", 
+        train_data = np.loadtxt(self.data_path + "mnist_train.csv", 
                         delimiter=",")
         if flag_Debug:
             print("Data Loading: Test")
-        test_data = np.loadtxt(data_path + "mnist_test.csv", 
+        test_data = np.loadtxt(self.data_path + "mnist_test.csv", 
                        delimiter=",") 
         if flag_Debug:
             print("Data Normalizing: transfer into [0,1]")
@@ -120,8 +120,8 @@ class DataHandler:
         
         lr = np.arange(no_of_different_labels)
         # transform labels into one hot representation
-        train_labels_one_hot = (lr==train_labels).astype(np.float)
-        test_labels_one_hot = (lr==test_labels).astype(np.float)
+        train_labels_one_hot = (lr==self.train_label).astype(np.float)
+        test_labels_one_hot = (lr==self.test_label).astype(np.float)
         # we don't want zeroes and ones in the labels neither:
         
         if flag_normalize:
@@ -133,6 +133,15 @@ class DataHandler:
         self.train_label_one_hot = train_labels_one_hot
         self.test_label_one_hot = test_labels_one_hot
         
+        if flag_save_pickle:
+            with open("%s" % self.data_path + "pickled_mnist.pkl", "w") as fh:
+                data = (self.train_data, 
+                        self.test_data, 
+                        self.train_label,
+                        self.test_label,
+                        self.train_label_one_hot,
+                        self.test_label_one_hot)
+                pickle.dump(data, fh)
         flag_okay = True
         return flag_okay
     
@@ -367,6 +376,7 @@ def generateDataMaskedSpikes(data, sample_period, firing_period, thresh = 0.2, f
         data format:
             np.array(n_sample,n_element)
     '''
+    print "func generateDataMaskedSpikes: data shape - ", np.shape(data)
     n_samples, n_neurons = np.shape(data)[:2]
     if flag_Debug:
         print "n_samples = ", n_samples
